@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title></title>
+  <style>
+    html,
+    body,
+    canvas {
+      padding: 0;
+      margin: 0;
+      width: 100vw;
+      height: 100vh;
+      cursor: none !important;
+      position: absolute;
+    }
+  </style>
+  <script src="/bower_components/socket.io-client/socket.io.js"></script>
+  <script>
+
+    //the map of currently connected users and their mouse positions
+    var mice = {};
+
+    //initiate the websocket, connecting it to the server
+    var socket = io(location.host, {
+      transports: ['websocket']
+    });
+
+    //event used by the server to catch up a new user
+    socket.on("state",function(state){
+      mice=state;
+    });
+
+    //event propagated from the server when it receives a move event
+    socket.on("move", function(mouse) {
+      mice[mouse.id] = mouse.pos;
+    });
+
+    //event propagated from the server when a client disconnects
+    socket.on("delete", function(mouseId) {
+      delete mice[mouseId];
+    });
+
+    //on mouse move, send screen position to server
+    //to be resolution agnostic the values are between 0 and 1
+    window.onmousemove = function(e) {
+      var x=e.clientX/window.innerWidth;
+      var y=e.clientY/window.innerHeight;
+      socket.emit("move",{x:x,y:y});
+    };
+
+    //drawing code
+    var canvas;
+    var context;
+    var draw=function() {
+      if (!canvas) {
+        canvas = document.querySelector("canvas");
+        context = canvas.getContext("2d");
+      }
+      canvas.width=window.innerWidth;
+      canvas.height=window.innerHeight;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      for(var x in mice){
+        var mouse=mice[x];
+        context.beginPath();
+        context.arc(mouse.x*canvas.width, mouse.y*canvas.height, 16, 0, 2 * Math.PI, false);
+        context.fillStyle = 'black';
+        context.fill();
+      }
+      requestAnimationFrame(draw);
+    };
+    requestAnimationFrame(draw);
+  </script>
+</head>
+
+<body>
+  <canvas></canvas>
+</body>
+
+</html>

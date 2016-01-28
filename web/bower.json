@@ -1,0 +1,19 @@
+{
+  "name": "mice",
+  "version": "0.0.1",
+  "authors": [
+    "Jack Barrett <jackbarrett@linux.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "socket.io": "~1.4.5",
+    "socket.io-client": "~1.4.5"
+  }
+}
