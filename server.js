@@ -21,30 +21,30 @@ var io = require('socket.io')(server, {
   transports: ['websocket']
 });
 //server side state
-var mice={};
+var clients={};
 //socket handler
 io.on('connection', function(socket) {
   //on new socket connection
   //generate a unique id for this socket so we can keep track
   socket.id = uuid();
   //send the current state to the new client so it can catch up
-  socket.emit("state",mice);
+  socket.emit("state",clients);
   //listen on the socket for the "move" event
   socket.on("move", function(data) {
     //update server side state
-    mice[socket.id]=data;
+    clients[socket.id]=data;
     //io.sockets is the collection of all sockets currently connected
     //so its just a shortcut to send to all of them instead of looping through
     //propagate move even that we just received back to all clients
     io.sockets.emit("move", {
       id: socket.id,
-      pos: data
+      points: data
     });
   });
   //when a client disconnects
   socket.on("disconnect", function() {
     //remove client from state
-    delete mice[socket.id];
+    delete clients[socket.id];
     //propagate the removal to all clients
     io.sockets.emit("delete", socket.id);
   });

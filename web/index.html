@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,user-scalable=no">
   <title></title>
   <style>
     html,
@@ -14,13 +15,14 @@
       height: 100vh;
       cursor: none !important;
       position: absolute;
+      touch-action:none;
     }
   </style>
   <script src="/bower_components/socket.io-client/socket.io.js"></script>
   <script>
 
-    //the map of currently connected users and their mouse positions
-    var mice = {};
+    //the map of currently connected users and their pointer positions
+    var clients = {};
 
     //initiate the websocket, connecting it to the server
     var socket = io(location.host, {
@@ -29,26 +31,38 @@
 
     //event used by the server to catch up a new user
     socket.on("state",function(state){
-      mice=state;
+      clients=state;
     });
 
     //event propagated from the server when it receives a move event
-    socket.on("move", function(mouse) {
-      mice[mouse.id] = mouse.pos;
+    socket.on("move", function(client) {
+      clients[client.id] = client.points;
     });
 
     //event propagated from the server when a client disconnects
-    socket.on("delete", function(mouseId) {
-      delete mice[mouseId];
+    socket.on("delete", function(id) {
+      delete clients[id];
     });
 
     //on mouse move, send screen position to server
     //to be resolution agnostic the values are between 0 and 1
-    window.onmousemove = function(e) {
+    window.addEventListener("mousemove",function(e) {
       var x=e.clientX/window.innerWidth;
       var y=e.clientY/window.innerHeight;
-      socket.emit("move",{x:x,y:y});
-    };
+      socket.emit("move",[{x:x,y:y}]);
+    });
+    //on touch move, send screen position to server
+    //to be resolution agnostic the values are between 0 and 1
+    window.addEventListener("touchmove",function(e) {
+      var points=[];
+      for(var i=0;i<e.targetTouches.length;i++){
+        var touch=e.targetTouches[i];
+        var x=touch.clientX/window.innerWidth;
+        var y=touch.clientY/window.innerHeight;
+        points.push({x:x,y:y});
+      }
+      socket.emit("move",points);
+    });
 
     //drawing code
     var canvas;
@@ -61,12 +75,14 @@
       canvas.width=window.innerWidth;
       canvas.height=window.innerHeight;
       context.clearRect(0, 0, canvas.width, canvas.height);
-      for(var x in mice){
-        var mouse=mice[x];
-        context.beginPath();
-        context.arc(mouse.x*canvas.width, mouse.y*canvas.height, 16, 0, 2 * Math.PI, false);
-        context.fillStyle = 'black';
-        context.fill();
+      for(var x in clients){
+        for(var y in clients[x]){
+          var point=clients[x][y];
+          context.beginPath();
+          context.arc(point.x*canvas.width, point.y*canvas.height, 16, 0, 2 * Math.PI, false);
+          context.fillStyle = 'black';
+          context.fill();
+        }
       }
       requestAnimationFrame(draw);
     };
